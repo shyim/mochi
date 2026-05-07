@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sitespeed-api
+  namespace: sitespeed
+spec:
+  selector:
+    app: sitespeed-api
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sitespeed-api
+  namespace: sitespeed
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - sitespeed.fos.gg
+      secretName: sitespeed-fos-gg-tls
+  rules:
+    - host: sitespeed.fos.gg
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sitespeed-api
+                port:
+                  number: 80

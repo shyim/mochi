@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sitespeed-api
+  namespace: sitespeed
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sitespeed-api
+  template:
+    metadata:
+      labels:
+        app: sitespeed-api
+    spec:
+      serviceAccountName: sitespeed-api
+      containers:
+        - name: api
+          image: ghcr.io/shyim/sitespeed.io-api:main
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          envFrom:
+            - secretRef:
+                name: sitespeed
+          env:
+            - name: RUNNER_TYPE
+              value: kubernetes
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://$(HOST_IP):4318"
+          resources:
+            requests:
+              memory: 64Mi
+              cpu: 100m
+            limits:
+              memory: 256Mi
+              cpu: 500m
