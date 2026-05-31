@@ -1,84 +1,107 @@
-apiVersion: apps/v1
-kind: Deployment
+# CloudNativePG-managed PostgreSQL for shopmon-staging.
+#
+# Replaces the previous plain postgres:18.3 Deployment + db-data PVC.
+# Backups: continuous WAL archiving + scheduled base backups to a dedicated
+# S3 bucket (Backblaze B2), enabling point-in-time recovery (PITR).
+#
+# Backups use the Barman Cloud Plugin (barmancloud.cnpg.io). The plugin and its
+# CRDs must be installed in the operator namespace; see
+# ../global/cloudnative-pg-values.yaml for the operator + plugin install.
+---
+# Object store definition for the Barman Cloud Plugin: where and how backups
+# and WAL are written. Replaces the deprecated in-tree spec.backup.barmanObjectStore.
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: db-backup
+  namespace: shopmon-staging
+spec:
+  configuration:
+    destinationPath: "s3://shopmon-backups/shopmon-staging"
+    endpointURL: "https://s3.eu-central-003.backblazeb2.com"
+    s3Credentials:
+      accessKeyId:
+        name: db-backup-s3
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: db-backup-s3
+        key: SECRET_ACCESS_KEY
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+  # Keep 30 days of backups + WAL; older ones are pruned automatically.
+  retentionPolicy: "30d"
+  instanceSidecarConfiguration:
+    # No memory limit: barman-cloud-backup buffers/compresses during base
+    # backups and a tight limit gets it OOMKilled mid-backup (exit 137), which
+    # surfaces as an "EOF" gRPC error and a failed Backup. Keep a request only.
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "50m"
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
 metadata:
   name: db
   namespace: shopmon-staging
-  labels:
-    app: db
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: db
-  template:
-    metadata:
-      labels:
-        app: db
-    spec:
-      containers:
-        - name: postgres
-          image: postgres:18.3
-          ports:
-            - containerPort: 5432
-          env:
-            - name: POSTGRES_DB
-              valueFrom:
-                secretKeyRef:
-                  name: shopmon
-                  key: POSTGRES_DB
-            - name: POSTGRES_USER
-              valueFrom:
-                secretKeyRef:
-                  name: shopmon
-                  key: POSTGRES_USER
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: shopmon
-                  key: POSTGRES_PASSWORD
-          livenessProbe:
-            exec:
-              command:
-                - pg_isready
-                - -U
-                - shopmon
-            initialDelaySeconds: 10
-            periodSeconds: 10
-          readinessProbe:
-            exec:
-              command:
-                - pg_isready
-                - -U
-                - shopmon
-            initialDelaySeconds: 5
-            periodSeconds: 5
-          volumeMounts:
-            - name: db-data
-              mountPath: /var/lib/postgresql
-          resources:
-            requests:
-              memory: "128Mi"
-              cpu: "100m"
-            limits:
-              memory: "512Mi"
-              cpu: "500m"
-      volumes:
-        - name: db-data
-          persistentVolumeClaim:
-            claimName: db-data
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: db-data
-  namespace: shopmon-staging
-spec:
-  accessModes:
-    - ReadWriteOnce
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.4
+
+  # Reuse the app's existing credentials/database name. The bootstrap below
+  # creates the database and owner role from the templated secret.
+  bootstrap:
+    initdb:
+      database: shopmon
+      owner: shopmon
+      secret:
+        name: db-app
+
+  # Roughly matches the previous Deployment's resource envelope.
   resources:
     requests:
-      storage: 10Gi
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+  storage:
+    size: 10Gi
+  # Dedicated volume for WAL keeps archiving/IO isolated from the data dir.
+  walStorage:
+    size: 2Gi
+
+  # Wire up the Barman Cloud Plugin for WAL archiving + backups.
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: db-backup
 ---
+# Schedule a base backup every night at 03:00. WAL archiving runs continuously
+# between base backups (via the plugin), giving PITR to any point in the
+# retention window.
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: db-daily
+  namespace: shopmon-staging
+spec:
+  # Seconds Minutes Hours DoM Month DoW (6-field Go cron used by CNPG)
+  schedule: "0 0 3 * * *"
+  immediate: true
+  backupOwnerReference: self
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+  cluster:
+    name: db
+---
+# Stable Service named "db" so the app's DATABASE_URL (@db:5432) keeps working
+# unchanged. Points at the current primary via CNPG's role label.
 apiVersion: v1
 kind: Service
 metadata:
@@ -86,7 +109,8 @@ metadata:
   namespace: shopmon-staging
 spec:
   selector:
-    app: db
+    cnpg.io/cluster: db
+    cnpg.io/instanceRole: primary
   ports:
     - port: 5432
       targetPort: 5432

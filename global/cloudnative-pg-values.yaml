@@ -1,0 +1,19 @@
+# Helm values for the CloudNativePG operator release
+# (chart cloudnative-pg v0.28.2, appVersion 1.29.1).
+#
+# The operator manages the Postgres `Cluster` in shopmon-staging (see
+# ../shopmon-staging/db.yaml) and its Barman backups to Backblaze B2.
+#
+# Installed cluster-wide (default) so it can watch Clusters in any namespace.
+#
+# Install / upgrade:
+#   helm upgrade --install cnpg \
+#     oci://ghcr.io/cloudnative-pg/charts/cloudnative-pg --version 0.28.2 \
+#     -n cnpg-system --create-namespace \
+#     -f global/cloudnative-pg-values.yaml
+#
+# CRDs ship with the chart and are installed/upgraded by default.
+
+# Keep a single operator replica — this is a single-node k3s cluster, so a
+# second replica cannot provide real HA and would just sit Pending.
+replicaCount: 1
