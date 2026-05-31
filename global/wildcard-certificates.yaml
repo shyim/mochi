@@ -1,0 +1,33 @@
+# Wildcard certificates for the shared eg Gateway, issued via DNS-01.
+# Live in the `default` namespace (same as the Gateway) so listeners can
+# reference them without a ReferenceGrant.
+#
+# Note: *.fos.gg does NOT cover *.staging.fos.gg (wildcards match a single
+# label only), so two separate certs are required.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wildcard-fos-gg-tls
+  namespace: default
+spec:
+  secretName: wildcard-fos-gg-tls
+  dnsNames:
+    - "*.fos.gg"
+  issuerRef:
+    name: letsencrypt-dns
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wildcard-staging-fos-gg-tls
+  namespace: default
+spec:
+  secretName: wildcard-staging-fos-gg-tls
+  dnsNames:
+    - "*.staging.fos.gg"
+  issuerRef:
+    name: letsencrypt-dns
+    kind: ClusterIssuer
+    group: cert-manager.io

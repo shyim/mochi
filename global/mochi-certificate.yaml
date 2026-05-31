@@ -1,0 +1,16 @@
+# Standalone certificate for mochi.shyim.de, consumed by the `https` listener
+# on the `eg` Gateway. Managed as a standalone Certificate (not via the
+# Gateway annotation) on purpose — see cert-issuer.yaml for why.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: mochi-shyim-de-tls
+  namespace: default
+spec:
+  secretName: mochi-shyim-de-tls
+  dnsNames:
+    - mochi.shyim.de
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+    group: cert-manager.io

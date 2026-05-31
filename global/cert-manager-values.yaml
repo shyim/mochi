@@ -1,0 +1,19 @@
+# Helm values for the cert-manager release (chart cert-manager-v1.20.0).
+#
+# config.enableGatewayAPI=true is the critical setting: it turns on the
+# Gateway API certificate-shim and HTTP-01 gatewayHTTPRoute solver, plus the
+# RBAC cert-manager needs to read Gateways and manage solver HTTPRoutes.
+# Without it, ACME HTTP-01 falls back to the Ingress solver, which fails on
+# this cluster because there is no Ingress controller (Traefik was removed).
+#
+# Install / upgrade:
+#   helm upgrade --install cert-manager \
+#     oci://quay.io/jetstack/charts/cert-manager --version v1.20.0 \
+#     -n cert-manager --create-namespace \
+#     -f global/cert-manager-values.yaml
+crds:
+  enabled: true
+config:
+  apiVersion: controller.config.cert-manager.io/v1alpha1
+  kind: ControllerConfiguration
+  enableGatewayAPI: true
