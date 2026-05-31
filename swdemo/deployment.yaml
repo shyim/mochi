@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopware
+  namespace: swdemo
+  labels:
+    app: shopware
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shopware
+  template:
+    metadata:
+      labels:
+        app: shopware
+    spec:
+      containers:
+        - name: shopware
+          image: ghcr.io/friendsofshopware/shopware-demo-environment:6.7
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          env:
+            - name: EXTENSIONS
+              value: "frosh/tools:* frosh/shopmon:*"
+            - name: TRUSTED_PROXIES
+              # Behind Envoy Gateway; trust the proxy so Shopware sees the
+              # forwarded client IP / scheme. REMOTE_ADDR mirrors the compose setup.
+              value: "REMOTE_ADDR"
+            - name: APP_URL
+              value: "https://demo.fos.gg"
+          envFrom:
+            - secretRef:
+                name: swdemo
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2Gi"
+              cpu: "2000m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopware
+  namespace: swdemo
+spec:
+  selector:
+    app: shopware
+  ports:
+    - port: 80
+      targetPort: 8000
