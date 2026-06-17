@@ -1,0 +1,36 @@
+# Kubernetes structured AuthenticationConfiguration for GitHub Actions OIDC.
+#
+# This file is NOT applied by Flux. It is host-level k3s config that lives on the
+# control-plane node. See docs/github-oidc.md for installation steps.
+#
+# Place it at: /var/lib/rancher/k3s/server/oidc/github-auth.yaml
+# and reference it from /etc/rancher/k3s/config.yaml via:
+#   kube-apiserver-arg:
+#     - "authentication-config=/var/lib/rancher/k3s/server/oidc/github-auth.yaml"
+#
+# Requires Kubernetes >= 1.30 (structured auth is beta / on by default there).
+# k3s ships a recent enough Kubernetes; check with `k3s --version`.
+apiVersion: apiserver.config.k8s.io/v1beta1
+kind: AuthenticationConfiguration
+jwt:
+  - issuer:
+      url: https://token.actions.githubusercontent.com
+      # The audience the GitHub OIDC token must carry. The workflow requests a
+      # token for exactly this audience. Keep it specific to this cluster so a
+      # token minted for some other service cannot be replayed here.
+      audiences:
+        - https://mochi.shyim.de
+      audienceMatchPolicy: MatchAny
+    claimMappings:
+      # sub looks like: repo:shyim/mochi:ref:refs/heads/main
+      # -> username:   github:repo:shyim/mochi:ref:refs/heads/main
+      username:
+        claim: sub
+        prefix: "github:"
+    claimValidationRules:
+      # Defense in depth: only accept tokens minted for repositories on this
+      # allowlist, so a token from any other GitHub repo is rejected before RBAC
+      # even runs. Add a repo here AND a binding in
+      # infrastructure/github-oidc/rbac.yaml to grant it access.
+      - expression: "claims.repository in ['shyim/mochi', 'FriendsOfShopware/shopmon']"
+        message: "repository is not allowed to authenticate to this cluster"

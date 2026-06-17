@@ -1,0 +1,220 @@
+# Flux bootstrap should point at this directory:
+#   flux bootstrap github --owner=shyim --repository=mochi --branch=main --path=clusters/mochi
+#
+# The bootstrap process creates the `flux-system` GitRepository. These
+# Migrate controllers in small batches. Datadog and Envoy Gateway are managed
+# first; add the remaining infrastructure/apps after each batch is healthy.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: envoy-controller
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 1m
+  timeout: 10m
+  prune: true
+  wait: true
+  path: ./infrastructure/envoy-controller
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cnpg-controller
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 1m
+  timeout: 10m
+  prune: true
+  wait: true
+  path: ./infrastructure/cnpg-controller
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cert-manager-controller
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: envoy-controller
+  interval: 10m
+  retryInterval: 1m
+  timeout: 10m
+  prune: true
+  wait: true
+  path: ./infrastructure/cert-manager-controller
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: barman-controller
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: cnpg-controller
+    - name: cert-manager-controller
+  interval: 10m
+  retryInterval: 1m
+  timeout: 10m
+  prune: true
+  wait: true
+  path: ./infrastructure/barman-controller
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: external-secrets-controller
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: cert-manager-controller
+  interval: 10m
+  retryInterval: 1m
+  timeout: 10m
+  prune: true
+  wait: true
+  path: ./infrastructure/external-secrets-controller
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: global-config
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: envoy-controller
+    - name: cert-manager-controller
+  interval: 10m
+  retryInterval: 1m
+  timeout: 10m
+  prune: true
+  wait: true
+  path: ./global
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: app-sitespeed
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: global-config
+    - name: external-secrets-controller
+  interval: 10m
+  retryInterval: 1m
+  timeout: 10m
+  prune: true
+  wait: true
+  path: ./sitespeed
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: app-swdemo
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: global-config
+  interval: 10m
+  retryInterval: 1m
+  timeout: 10m
+  prune: true
+  wait: true
+  path: ./swdemo
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: app-shopmon-staging
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: global-config
+    - name: external-secrets-controller
+    - name: cnpg-controller
+    - name: barman-controller
+  interval: 10m
+  retryInterval: 1m
+  timeout: 10m
+  prune: true
+  wait: true
+  path: ./shopmon-staging
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: datadog-controller
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 1m
+  timeout: 10m
+  prune: true
+  wait: true
+  path: ./infrastructure/datadog-controller
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: datadog-config
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: datadog-controller
+  interval: 10m
+  retryInterval: 1m
+  timeout: 10m
+  prune: true
+  wait: true
+  path: ./infrastructure/datadog-config
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: github-oidc
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 1m
+  timeout: 10m
+  prune: true
+  wait: true
+  path: ./infrastructure/github-oidc
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+

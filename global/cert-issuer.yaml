@@ -1,0 +1,27 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    email: mochi@shyim.de
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+      # HTTP-01 challenges are solved through the shared Envoy Gateway (`eg`)
+      # rather than an Ingress. cert-manager creates a temporary HTTPRoute on
+      # the `http` listener for the ACME challenge path.
+      #
+      # NOTE: do NOT add the cert-manager.io/cluster-issuer annotation to the
+      # `eg` Gateway. The gateway-shim would then auto-inject the Gateway as a
+      # second parentRef, colliding with the one below and producing an invalid
+      # HTTPRoute. Apps use standalone Certificate resources instead.
+      - http01:
+          gatewayHTTPRoute:
+            parentRefs:
+              - group: gateway.networking.k8s.io
+                kind: Gateway
+                name: eg
+                namespace: default
+                sectionName: http

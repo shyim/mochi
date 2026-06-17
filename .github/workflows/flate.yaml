@@ -1,0 +1,35 @@
+name: flate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup flate
+        uses: home-operations/flate/action@0.2.12
+        with:
+          cache: "true"
+
+      - name: Reconcile Flux graph offline
+        run: flate test all --path clusters/mochi
+
+      - name: Render Flux graph offline
+        run: flate build all --path clusters/mochi -o yaml >/tmp/flate-build.yaml
+
+      - name: Rendered diff
+        if: github.event_name == 'pull_request'
+        run: flate diff all --path clusters/mochi -o github
+

@@ -1,0 +1,22 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cloudnative-pg
+  namespace: flux-system
+spec:
+  interval: 10m
+  releaseName: cnpg
+  targetNamespace: cnpg-system
+  storageNamespace: cnpg-system
+  chartRef:
+    kind: OCIRepository
+    name: cloudnative-pg
+    namespace: flux-system
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    replicaCount: 1

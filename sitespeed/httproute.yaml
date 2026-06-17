@@ -1,0 +1,40 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: sitespeed-api
+  namespace: sitespeed
+spec:
+  parentRefs:
+    - name: eg
+      namespace: default
+      sectionName: fos-gg-https
+  hostnames:
+    - sitespeed.fos.gg
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: sitespeed-api
+          port: 80
+---
+# Redirect plain HTTP to HTTPS for sitespeed.fos.gg.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: sitespeed-api-redirect
+  namespace: sitespeed
+spec:
+  parentRefs:
+    - name: eg
+      namespace: default
+      sectionName: fos-gg-http
+  hostnames:
+    - sitespeed.fos.gg
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301

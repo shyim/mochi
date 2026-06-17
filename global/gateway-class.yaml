@@ -1,0 +1,51 @@
+# GatewayClass for Envoy Gateway, parameterized by the `dual-stack` EnvoyProxy
+# config below. All Gateways reference this class via `gatewayClassName: eg`.
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: eg
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  parametersRef:
+    group: gateway.envoyproxy.io
+    kind: EnvoyProxy
+    name: dual-stack
+    namespace: envoy-gateway-system
+---
+# EnvoyProxy fleet config for the GatewayClass.
+#
+# Two settings here are required for IPv6 to work on this dual-stack cluster:
+#
+#   1. spec.ipFamily: DualStack
+#      Envoy Gateway defaults to IPv4-only, which makes Envoy bind its
+#      listeners to 0.0.0.0 only. Without this, IPv6 clients get
+#      "connection refused" even though the LB Service advertises a v6 address.
+#
+#   2. envoyService patch -> ipFamilyPolicy: PreferDualStack + ipFamilies
+#      Makes the generated LoadBalancer Service dual-stack so k3s ServiceLB
+#      (klipper) exposes both the v4 and v6 node addresses. Envoy Gateway
+#      otherwise creates a SingleStack IPv4 Service.
+#
+# externalTrafficPolicy: Cluster is set because on a single-node cluster the
+# default `Local` offers no source-IP benefit and complicated the v6 path.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: dual-stack
+  namespace: envoy-gateway-system
+spec:
+  ipFamily: DualStack
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        type: LoadBalancer
+        externalTrafficPolicy: Cluster
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              ipFamilyPolicy: PreferDualStack
+              ipFamilies:
+                - IPv4
+                - IPv6

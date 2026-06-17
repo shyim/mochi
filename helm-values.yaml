@@ -1,0 +1,14 @@
+clusterAgent:
+  enabled: false
+datadog:
+  logs:
+    enabled: true
+  otlp:
+    logs:
+      enabled: true
+    receiver:
+      protocols:
+        grpc:
+          enabled: true
+        http:
+          enabled: true

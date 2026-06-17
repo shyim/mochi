@@ -1,0 +1,41 @@
+apiVersion: datadoghq.com/v2alpha1
+kind: DatadogAgent
+metadata:
+  name: datadog
+  namespace: default
+spec:
+  features:
+    admissionController:
+      mutateUnlabelled: false
+    clusterChecks:
+      enabled: true
+    logCollection:
+      enabled: true
+    orchestratorExplorer:
+      enabled: true
+    otelCollector:
+      enabled: true
+      ports:
+      - containerPort: 4317
+        hostPort: 4317
+        name: otel-grpc
+        protocol: TCP
+      - containerPort: 4318
+        hostPort: 4318
+        name: otel-http
+        protocol: TCP
+  global:
+    clusterName: mochi
+    credentials:
+      apiSecret:
+        keyName: api-key
+        secretName: datadog-secret
+    site: datadoghq.com
+  override:
+    nodeAgent:
+      containers:
+        agent:
+          env:
+          - name: DD_OTLP_CONFIG_LOGS_ENABLED
+            value: "true"
+

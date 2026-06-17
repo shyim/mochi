@@ -1,0 +1,6 @@
+# Database dumps — may contain sensitive data, never commit
+*.dump
+*.sql
+
+# Local credentials for bootstrap/migration commands
+.env

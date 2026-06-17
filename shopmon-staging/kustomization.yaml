@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - secret.yaml
+  - configmap.yaml
+  - redis.yaml
+  - db.yaml
+  - api.yaml
+  - httproute.yaml
+  - httproute-redirect.yaml
+

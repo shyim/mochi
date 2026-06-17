@@ -1,0 +1,87 @@
+# Shared Envoy Gateway with WILDCARD listeners.
+#
+# Adding a new app no longer requires editing this file: just create an
+# HTTPRoute in the app's namespace with a hostname under *.fos.gg or
+# *.staging.fos.gg and attach it to the matching listener (sectionName).
+#
+# Listeners (one HTTP + one HTTPS per wildcard domain):
+#   - fos-gg-*          -> *.fos.gg          (cert: wildcard-fos-gg-tls)
+#   - staging-fos-gg-*  -> *.staging.fos.gg  (cert: wildcard-staging-fos-gg-tls)
+#   - mochi-*           -> mochi.shyim.de    (different apex domain; explicit)
+#
+# Both wildcard certs live in the `default` namespace (same as this Gateway),
+# so no ReferenceGrant is needed. allowedRoutes is `from: All` so any namespace
+# can attach a route under the wildcard.
+#
+# Single shared Gateway (not one per app) because k3s ServiceLB binds hostPort
+# 80/443 per LoadBalancer Service, so multiple Gateways would collide.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: eg
+  namespace: default
+spec:
+  gatewayClassName: eg
+  listeners:
+    # --- *.fos.gg ---
+    - name: fos-gg-http
+      protocol: HTTP
+      port: 80
+      hostname: "*.fos.gg"
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: fos-gg-https
+      protocol: HTTPS
+      port: 443
+      hostname: "*.fos.gg"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: wildcard-fos-gg-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+
+    # --- *.staging.fos.gg (more specific; matched ahead of *.fos.gg by SNI) ---
+    - name: staging-fos-gg-http
+      protocol: HTTP
+      port: 80
+      hostname: "*.staging.fos.gg"
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: staging-fos-gg-https
+      protocol: HTTPS
+      port: 443
+      hostname: "*.staging.fos.gg"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: wildcard-staging-fos-gg-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+
+    # --- mochi.shyim.de (different apex; keeps its own cert) ---
+    - name: mochi-http
+      protocol: HTTP
+      port: 80
+      hostname: "mochi.shyim.de"
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: mochi-https
+      protocol: HTTPS
+      port: 443
+      hostname: "mochi.shyim.de"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: mochi-shyim-de-tls
+      allowedRoutes:
+        namespaces:
+          from: Same
