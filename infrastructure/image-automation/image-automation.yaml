@@ -33,8 +33,9 @@ spec:
   image: ghcr.io/shyim/sitespeed.io-api
   interval: 1h0m0s
 ---
-# Selects the newest semver release. Pre-1.0, so every 0.x minor may carry
-# breaking changes; tracking all >=0.1.0 keeps it on the latest tagged release.
+# Selects the newest 0.1.x patch release. Pre-1.0, so each 0.x minor may carry
+# breaking changes; moving to 0.2 is an intentional bump to this range rather
+# than an automatic registry-driven push to main.
 apiVersion: image.toolkit.fluxcd.io/v1beta2
 kind: ImagePolicy
 metadata:
@@ -45,7 +46,7 @@ spec:
     name: sitespeed-api
   policy:
     semver:
-      range: ">=0.1.0"
+      range: ">=0.1.0 <0.2.0"
 ---
 # Writes image tag bumps back to main. Targets all files carrying an
 # $imagepolicy marker (swdemo/deployment.yaml, sitespeed/deployment.yaml).
