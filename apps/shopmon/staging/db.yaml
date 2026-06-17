@@ -50,6 +50,18 @@ spec:
   instances: 1
   imageName: ghcr.io/cloudnative-pg/postgresql:18.4
 
+  # Tune WAL generation to cut the number of objects shipped to S3 (Barman
+  # uploads one object per archived WAL segment, and B2 bills per operation).
+  #   archive_timeout: raise from the CNPG default of 5min so an idle DB no
+  #     longer forces a near-empty segment switch every 5min (~288 -> ~48
+  #     uploads/day at idle). Worst-case PITR lag on a quiet DB becomes 30min.
+  #   wal_compression: compress WAL records in-Postgres so more transactions
+  #     fit per 16MB segment -> fewer segments generated -> fewer uploads.
+  postgresql:
+    parameters:
+      archive_timeout: "30min"
+      wal_compression: "zstd"
+
   # Reuse the app's existing credentials/database name. The bootstrap below
   # creates the database and owner role from the templated secret.
   bootstrap:
