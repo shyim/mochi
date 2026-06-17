@@ -1,0 +1,20 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: shopmon-prod
+  namespace: shopmon-prod
+spec:
+  parentRefs:
+    - name: eg
+      namespace: default
+      sectionName: fos-gg-https
+  hostnames:
+    - shopmon.fos.gg
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: api
+          port: 8080

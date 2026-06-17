@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: shopmon-prod
+resources:
+  - namespace.yaml
+  - ../base
+  - secret.yaml
+  - configmap.yaml
+  - db.yaml
+  - httproute.yaml
+  - httproute-redirect.yaml
+images:
+  - name: ghcr.io/friendsofshopware/shopmon
+    newTag: release-0.0.0 # {"$imagepolicy": "flux-system:shopmon-production:tag"}

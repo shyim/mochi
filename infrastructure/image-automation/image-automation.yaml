@@ -48,8 +48,56 @@ spec:
     semver:
       range: ">=0.1.0 <0.2.0"
 ---
+# Scans GHCR for available tags of the shopmon app image. Shared by the
+# staging and production policies below.
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImageRepository
+metadata:
+  name: shopmon
+  namespace: flux-system
+spec:
+  image: ghcr.io/friendsofshopware/shopmon
+  interval: 5m0s
+---
+# Staging tracks the newest main build. CI tags every push to main as
+# main-<unix-timestamp>-<sha>; the embedded timestamp is extracted and sorted
+# numerically so the most recent build always wins. Auto-deploys on merge.
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImagePolicy
+metadata:
+  name: shopmon-staging
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: shopmon
+  filterTags:
+    pattern: '^main-(?P<ts>\d+)-[a-f0-9]+$'
+    extract: '$ts'
+  policy:
+    numerical:
+      order: asc
+---
+# Production tracks tagged releases. Cutting a git tag vX.Y.Z on the shopmon
+# repo builds a release-X.Y.Z image; the semver range selects it. Promotion is
+# a deliberate release, not an automatic registry-driven push.
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImagePolicy
+metadata:
+  name: shopmon-production
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: shopmon
+  filterTags:
+    pattern: '^release-(?P<ver>.+)$'
+    extract: '$ver'
+  policy:
+    semver:
+      range: ">=0.0.0"
+---
 # Writes image tag bumps back to main. Targets all files carrying an
-# $imagepolicy marker (swdemo/deployment.yaml, sitespeed/deployment.yaml).
+# $imagepolicy marker (swdemo/deployment.yaml, sitespeed/deployment.yaml,
+# apps/shopmon/{staging,production}/kustomization.yaml).
 apiVersion: image.toolkit.fluxcd.io/v1beta2
 kind: ImageUpdateAutomation
 metadata:

@@ -163,10 +163,34 @@ spec:
   timeout: 10m
   prune: true
   wait: true
-  path: ./shopmon-staging
+  path: ./apps/shopmon/staging
   sourceRef:
     kind: GitRepository
     name: flux-system
+# Production is not reconciled yet. Enable this once a release-* image exists
+# in GHCR (cut a `vX.Y.Z` tag on the shopmon repo) so the shopmon-production
+# ImagePolicy can resolve a real tag instead of the release-0.0.0 placeholder.
+# ---
+# apiVersion: kustomize.toolkit.fluxcd.io/v1
+# kind: Kustomization
+# metadata:
+#   name: app-shopmon-production
+#   namespace: flux-system
+# spec:
+#   dependsOn:
+#     - name: global-config
+#     - name: external-secrets-controller
+#     - name: cnpg-controller
+#     - name: barman-controller
+#   interval: 10m
+#   retryInterval: 1m
+#   timeout: 10m
+#   prune: true
+#   wait: true
+#   path: ./apps/shopmon/production
+#   sourceRef:
+#     kind: GitRepository
+#     name: flux-system
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
