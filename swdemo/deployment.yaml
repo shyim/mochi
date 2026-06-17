@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: shopware
-          image: ghcr.io/friendsofshopware/shopware-demo-environment:6.7.10 # {"$imagepolicy": "flux-system:swdemo-shopware"}
+          image: ghcr.io/friendsofshopware/shopware-demo-environment:6.7.11 # {"$imagepolicy": "flux-system:swdemo-shopware"}
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
