@@ -11,3 +11,4 @@ data:
   APP_SITESPEED_ENDPOINT: "https://sitespeed.fos.gg"
   APP_SITESPEED_PREFIX: "shopmon-staging-"
   PACKAGES_API_URL: "https://packages.staging.fos.gg"
+  OTEL_DEPLOYMENT_ENVIRONMENT: "staging"
