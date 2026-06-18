@@ -46,7 +46,15 @@ metadata:
   name: db
   namespace: shopmon-prod
 spec:
-  instances: 1
+  # Two instances so the operator can roll upgrades/restarts: it updates the
+  # replica, switches over (~seconds of connection blip), then updates the old
+  # primary. Avoids the multi-minute outage a single instance incurs on every
+  # image bump or restart-requiring config change.
+  #
+  # Single-node cluster caveat: both pods land on the same node, so this gives
+  # zero-downtime *upgrades*, not node-failure HA. CNPG uses soft pod
+  # anti-affinity by default, which permits co-location on one node.
+  instances: 2
   imageName: ghcr.io/cloudnative-pg/postgresql:18.4
 
   # Tune WAL generation to cut the number of objects shipped to S3 (Barman
