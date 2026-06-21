@@ -50,6 +50,15 @@ spec:
   instances: 1
   imageName: ghcr.io/cloudnative-pg/postgresql:18.4
 
+  # Pin to the storage node. This Cluster uses the default `local-path`
+  # StorageClass, whose PVs are node-local hostPath. On a multi-node cluster a
+  # rescheduled instance must land back on the node that holds its data dir, or
+  # it cannot mount the PVC. Keep all Postgres instances on the labelled
+  # storage node (mochi); the other nodes are compute-only.
+  affinity:
+    nodeSelector:
+      topology.fos.gg/role: storage
+
   # Tune WAL generation to cut the number of objects shipped to S3 (Barman
   # uploads one object per archived WAL segment, and B2 bills per operation).
   #   archive_timeout: raise from the CNPG default of 5min so an idle DB no

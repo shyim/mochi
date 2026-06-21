@@ -38,6 +38,15 @@ spec:
   provider:
     type: Kubernetes
     kubernetes:
+      # Pin the Envoy data plane to the storage node (mochi). DNS for *.fos.gg /
+      # mochi.shyim.de resolves to mochi's IP, and k3s ServiceLB (klipper) binds
+      # hostPort 80/443 on whichever node the Envoy pod runs. Keeping Envoy on
+      # mochi guarantees ingress traffic lands where DNS points. The other nodes
+      # are compute-only.
+      envoyDeployment:
+        pod:
+          nodeSelector:
+            topology.fos.gg/role: storage
       envoyService:
         type: LoadBalancer
         externalTrafficPolicy: Cluster
