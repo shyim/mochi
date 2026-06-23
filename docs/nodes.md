@@ -107,6 +107,6 @@ node.
 | Node | Provider | `role` | `cpu` | Notes |
 |------|----------|--------|-------|-------|
 | `mochi` | hetzner | `storage` | `shared` | control-plane, pinned Postgres + Envoy ingress |
-| `dango` | _set me_ | `compute` | `dedicated` | stateless workloads + PageSpeed runner pods |
+| `dango` | netcup | `compute` | `dedicated` | stateless workloads + PageSpeed runner pods |
 
 Keep this table updated when nodes are added or re-tiered.
