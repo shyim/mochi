@@ -96,8 +96,11 @@ spec:
 ```
 
 For the PageSpeed runner specifically, the pod spec is generated at runtime by
-`sitespeed-api`, so the selector has to be supplied through that app's runner
-configuration rather than a static manifest — see the sitespeed app config.
+`sitespeed-api`, so the selector is supplied through that app's
+`K8S_NODE_SELECTOR` env var (comma-separated `key=value` pairs) rather than a
+static manifest. It is set to `node.fos.gg/cpu=dedicated` in
+`sitespeed/deployment.yaml` so every analysis pod lands on a dedicated-vCPU
+node.
 
 ## Current assignments
 

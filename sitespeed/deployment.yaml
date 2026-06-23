@@ -38,6 +38,12 @@ spec:
           env:
             - name: RUNNER_TYPE
               value: kubernetes
+            # Pin the spawned PageSpeed/Lighthouse runner pods to dedicated-vCPU
+            # nodes. Those runs time the main thread, so noisy-neighbour CPU
+            # contention on a shared node corrupts the scores. Comma-separated
+            # key=value node selector; see docs/nodes.md for the label scheme.
+            - name: K8S_NODE_SELECTOR
+              value: "node.fos.gg/cpu=dedicated"
             - name: HOST_IP
               valueFrom:
                 fieldRef:
