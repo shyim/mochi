@@ -15,6 +15,11 @@ spec:
         - path:
             type: PathPrefix
             value: /
+      # A sitespeed analysis runs synchronously and can take up to the API's
+      # ANALYSIS_TIMEOUT (default 300s). Bound the gateway request to match so
+      # slow runs are not cut off early by Envoy's defaults.
+      timeouts:
+        request: "300s"
       backendRefs:
         - name: sitespeed-api
           port: 80
