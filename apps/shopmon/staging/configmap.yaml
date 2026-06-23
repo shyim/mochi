@@ -12,3 +12,7 @@ data:
   APP_SITESPEED_PREFIX: "shopmon-staging-"
   PACKAGES_API_URL: "https://packages.staging.fos.gg"
   OTEL_DEPLOYMENT_ENVIRONMENT: "staging"
+  # chimiddleware.ClientIPFromXFF trusts these CIDRs as proxy hops in
+  # X-Forwarded-For; the real client IP is the first hop NOT in this list.
+  # k3s default pod CIDR (Envoy Gateway pod is the immediate hop).
+  TRUSTED_PROXIES: "10.42.0.0/16"
