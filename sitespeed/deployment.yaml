@@ -16,7 +16,7 @@ spec:
       serviceAccountName: sitespeed-api
       containers:
         - name: api
-          image: ghcr.io/shyim/sitespeed.io-api:0.1.0 # {"$imagepolicy": "flux-system:sitespeed-api"}
+          image: ghcr.io/shyim/sitespeed.io-api:0.1.1 # {"$imagepolicy": "flux-system:sitespeed-api"}
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
