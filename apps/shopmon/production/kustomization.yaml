@@ -10,10 +10,9 @@ resources:
   - httproute.yaml
   - httproute-redirect.yaml
 images:
-  # TEMPORARY: pinned to the current staging image to validate the production
-  # stack (DB, secrets, routes, DNS/cert) before switching to release tags.
-  # To enable release-driven deploys, append the Flux setter marker comment to
-  # the newTag line (matching staging's kustomization.yaml) so the
-  # shopmon-production ImagePolicy resolves and rewrites the tag from release-*.
+  # Release-driven deploys: the shopmon-production ImagePolicy selects the
+  # highest semver from release-* tags, and the Flux ImageUpdateAutomation
+  # rewrites newTag below (via the $imagepolicy setter marker). Promoting to a
+  # new release means cutting a git tag on the shopmon repo, not editing here.
   - name: ghcr.io/friendsofshopware/shopmon
-    newTag: main-1781671988-d7d90da
+    newTag: release-1.0.0 # {"$imagepolicy": "flux-system:shopmon-production:tag"}
