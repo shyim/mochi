@@ -26,8 +26,15 @@ spec:
 #      (klipper) exposes both the v4 and v6 node addresses. Envoy Gateway
 #      otherwise creates a SingleStack IPv4 Service.
 #
-# externalTrafficPolicy: Cluster is set because on a single-node cluster the
-# default `Local` offers no source-IP benefit and complicated the v6 path.
+# externalTrafficPolicy: Local preserves the client source IP. With `Cluster`,
+# k3s ServiceLB (klipper) SNATs the connection to a node/pod IP before it
+# reaches Envoy, so Envoy never sees the real client and can't populate
+# X-Forwarded-For (breaking TRUSTED_PROXIES-based client-IP resolution in apps).
+# `Local` skips that SNAT, but only serves traffic on nodes that actually run an
+# Envoy pod — traffic to a node without one is dropped. So Envoy runs as a
+# DaemonSet (one pod per node) and DNS for *.fos.gg points at BOTH node IPs
+# (mochi 162.55.47.201 + dango 159.195.30.237). Every ingress IP then has a
+# local Envoy to serve it, giving HA ingress with the real client IP preserved.
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: EnvoyProxy
 metadata:
@@ -38,18 +45,18 @@ spec:
   provider:
     type: Kubernetes
     kubernetes:
-      # Pin the Envoy data plane to the storage node (mochi). DNS for *.fos.gg /
-      # mochi.shyim.de resolves to mochi's IP, and k3s ServiceLB (klipper) binds
-      # hostPort 80/443 on whichever node the Envoy pod runs. Keeping Envoy on
-      # mochi guarantees ingress traffic lands where DNS points. The other nodes
-      # are compute-only.
-      envoyDeployment:
-        pod:
-          nodeSelector:
-            topology.fos.gg/role: storage
+      # Run Envoy as a DaemonSet so every node has a local data plane. k3s
+      # ServiceLB (klipper) binds hostPort 80/443 on each node running an Envoy
+      # pod, so both node public IPs serve ingress. Combined with
+      # externalTrafficPolicy: Local (below) this preserves the client source IP
+      # on every node — there is no node without a local Envoy to drop traffic.
+      # No nodeSelector: we want Envoy on all nodes, including mochi.shyim.de
+      # which only resolves to mochi (still covered by the per-node pod there).
+      envoyDaemonSet:
+        pod: {}
       envoyService:
         type: LoadBalancer
-        externalTrafficPolicy: Cluster
+        externalTrafficPolicy: Local
         patch:
           type: StrategicMerge
           value:

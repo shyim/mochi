@@ -1,8 +1,9 @@
 # Cluster ingress: Envoy Gateway + Gateway API
 
-This cluster (single-node k3s `mochi`, dual-stack IPv4 + IPv6) serves all HTTP(S)
-traffic through **Envoy Gateway** using the **Gateway API**. Traefik (k3s's
-bundled ingress) has been removed.
+This cluster (k3s, nodes `mochi` + `dango`, dual-stack IPv4 + IPv6) serves all
+HTTP(S) traffic through **Envoy Gateway** using the **Gateway API**. Traefik
+(k3s's bundled ingress) has been removed. Envoy runs as a DaemonSet so both
+nodes serve ingress (see "Ingress topology" below).
 
 ## Components
 
@@ -126,7 +127,30 @@ kubectl apply -f sitespeed/
   ("sectionName or port must be unique"). Apps use standalone `Certificate`
   resources instead.
 
-### Single-node ServiceLB
+### ServiceLB + one shared Gateway
 - Only ONE Gateway, because each Gateway gets its own LoadBalancer Service and
   k3s ServiceLB binds hostPort 80/443 per Service — two Gateways collide and one
   stays Pending. Add hosts as extra listeners on the shared `eg` Gateway.
+
+### Client source IP was lost (apps saw a pod/node IP)
+- With `externalTrafficPolicy: Cluster`, k3s ServiceLB (klipper) SNATs incoming
+  connections to a node/pod IP before they reach Envoy. Envoy then never sees
+  the real client, so `X-Forwarded-For` is wrong and app-side client-IP
+  resolution (`TRUSTED_PROXIES`) can't recover it. Setting Envoy's
+  `use_remote_address` (already the Envoy Gateway default) does NOT help — Envoy
+  can only trust the connection IP it actually receives, which SNAT has already
+  rewritten.
+- Fixed by `externalTrafficPolicy: Local` on the EnvoyProxy `envoyService`
+  (`gateway-class.yaml`), which skips the SNAT so the real client IP reaches
+  Envoy. `Local` only serves traffic on nodes that run an Envoy pod (others drop
+  it), so Envoy also runs as a **DaemonSet** (one pod per node) and `*.fos.gg`
+  DNS points at both node IPs (mochi + dango). Every ingress IP has a local
+  Envoy → real client IP preserved + HA ingress.
+- PROXY protocol is the alternative but is a poor fit for klipper — it's meant
+  for an external L4 LB that prepends the header, which this cluster doesn't have.
+
+### Ingress topology (2 nodes)
+- `mochi` (Hetzner, `162.55.47.201`, role=storage, control-plane) and `dango`
+  (netcup, `159.195.30.237`, role=compute) both run an Envoy pod (DaemonSet) and
+  a `svclb-envoy-*` pod, so both public IPs serve `*.fos.gg`. `mochi.shyim.de`
+  still resolves to mochi only; its DaemonSet pod on mochi covers it.
