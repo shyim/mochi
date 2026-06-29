@@ -15,4 +15,4 @@ images:
   # rewrites newTag below (via the $imagepolicy setter marker). Promoting to a
   # new release means cutting a git tag on the shopmon repo, not editing here.
   - name: ghcr.io/friendsofshopware/shopmon
-    newTag: release-1.0.5 # {"$imagepolicy": "flux-system:shopmon-production:tag"}
+    newTag: release-1.0.6 # {"$imagepolicy": "flux-system:shopmon-production:tag"}
