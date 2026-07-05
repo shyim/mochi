@@ -1,12 +1,12 @@
-# Nightly logical dump of the shopmon database, uploaded to Backblaze B2.
+# Nightly logical dump of the shopmon database, uploaded to the Garage S3
+# instance (s3.shyim.de).
 #
 # Replaces the previous Barman/PITR setup: pg_dump is decoupled from the
 # database lifecycle, so a full/unreachable bucket can never block WAL
 # recycling and fill the node's disk — worst case is a stale dump.
 #
-# Retention is NOT handled here: configure a lifecycle rule on the B2 bucket
-# (e.g. "keep prior versions for 7 days" / delete files older than N days)
-# so expired dumps are pruned server-side.
+# Retention: Garage has no lifecycle expiration, so the upload step prunes
+# dumps older than RETENTION_DAYS after each successful upload.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -60,7 +60,19 @@ spec:
               # The aws CLI picks up AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY/
               # AWS_REGION/AWS_ENDPOINT_URL straight from the secret's env.
               args:
-                - aws s3 cp /backup/ "s3://${AWS_S3_BUCKET_NAME}/shopmon-staging/" --recursive
+                - |
+                  prefix="s3://${AWS_S3_BUCKET_NAME}/shopmon-staging"
+                  aws s3 cp /backup/ "$prefix/" --recursive
+                  cutoff=$(date -d "$RETENTION_DAYS days ago" +%s)
+                  aws s3 ls "$prefix/" | while read -r day time size key; do
+                    [ -n "$key" ] || continue
+                    if [ "$(date -d "$day $time" +%s)" -lt "$cutoff" ]; then
+                      aws s3 rm "$prefix/$key"
+                    fi
+                  done
+              env:
+                - name: RETENTION_DAYS
+                  value: "7"
               envFrom:
                 - secretRef:
                     name: db-backup-s3
