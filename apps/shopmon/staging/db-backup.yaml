@@ -1,0 +1,72 @@
+# Nightly logical dump of the shopmon database, uploaded to Backblaze B2.
+#
+# Replaces the previous Barman/PITR setup: pg_dump is decoupled from the
+# database lifecycle, so a full/unreachable bucket can never block WAL
+# recycling and fill the node's disk — worst case is a stale dump.
+#
+# Retention is NOT handled here: configure a lifecycle rule on the B2 bucket
+# (e.g. "keep prior versions for 7 days" / delete files older than N days)
+# so expired dumps are pruned server-side.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: db-dump
+  namespace: shopmon-staging
+spec:
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800
+      template:
+        spec:
+          restartPolicy: Never
+          # Dump first (init container), then upload: guarantees ordering
+          # without needing two images merged into one.
+          initContainers:
+            - name: dump
+              image: postgres:18-alpine
+              command: ["/bin/sh", "-ec"]
+              args:
+                - pg_dump -Fc -f "/backup/shopmon-staging-$(date +%Y-%m-%d-%H%M%S).dump"
+              env:
+                - name: PGHOST
+                  value: db
+                - name: PGDATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: shopmon
+                      key: POSTGRES_DB
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: shopmon
+                      key: POSTGRES_USER
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: shopmon
+                      key: POSTGRES_PASSWORD
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          containers:
+            - name: upload
+              image: amazon/aws-cli:latest
+              command: ["/bin/sh", "-ec"]
+              # The aws CLI picks up AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY/
+              # AWS_REGION/AWS_ENDPOINT_URL straight from the secret's env.
+              args:
+                - aws s3 cp /backup/ "s3://${AWS_S3_BUCKET_NAME}/shopmon-staging/" --recursive
+              envFrom:
+                - secretRef:
+                    name: db-backup-s3
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: backup
+              emptyDir: {}
