@@ -7,6 +7,7 @@ resources:
   - secret.yaml
   - configmap.yaml
   - db.yaml
+  - db-backup.yaml
   - httproute.yaml
   - httproute-redirect.yaml
 images:

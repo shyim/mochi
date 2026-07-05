@@ -1,44 +1,9 @@
 # CloudNativePG-managed PostgreSQL for shopmon-prod.
 #
-# Backups: continuous WAL archiving + scheduled base backups to a dedicated
-# S3 prefix (Backblaze B2), enabling point-in-time recovery (PITR).
-#
-# Backups use the Barman Cloud Plugin (barmancloud.cnpg.io). The plugin and its
-# CRDs must be installed in the operator namespace; see
-# ../../../global/cloudnative-pg-values.yaml for the operator + plugin install.
----
-# Object store definition for the Barman Cloud Plugin: where and how backups
-# and WAL are written. Distinct prefix from staging.
-apiVersion: barmancloud.cnpg.io/v1
-kind: ObjectStore
-metadata:
-  name: db-backup
-  namespace: shopmon-prod
-spec:
-  configuration:
-    destinationPath: "s3://shopmon-backups/shopmon-prod"
-    endpointURL: "https://s3.eu-central-003.backblazeb2.com"
-    s3Credentials:
-      accessKeyId:
-        name: db-backup-s3
-        key: ACCESS_KEY_ID
-      secretAccessKey:
-        name: db-backup-s3
-        key: SECRET_ACCESS_KEY
-    wal:
-      compression: gzip
-    data:
-      compression: gzip
-  # Keep 30 days of backups + WAL; older ones are pruned automatically.
-  retentionPolicy: "30d"
-  instanceSidecarConfiguration:
-    # No memory limit: barman-cloud-backup buffers/compresses during base
-    # backups and a tight limit gets it OOMKilled mid-backup (exit 137), which
-    # surfaces as an "EOF" gRPC error and a failed Backup. Keep a request only.
-    resources:
-      requests:
-        memory: "128Mi"
-        cpu: "50m"
+# Backups: logical dumps (pg_dump) on a schedule, uploaded to the Garage S3
+# instance — see db-backup.yaml. No WAL archiving/PITR: a dump-based RPO is
+# acceptable here and an unreachable backup target can never pile up WAL on
+# disk again (which once filled the storage node and took this cluster down).
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
@@ -66,16 +31,10 @@ spec:
     nodeSelector:
       topology.fos.gg/role: storage
 
-  # Tune WAL generation to cut the number of objects shipped to S3 (Barman
-  # uploads one object per archived WAL segment, and B2 bills per operation).
-  #   archive_timeout: raise from the CNPG default of 5min so an idle DB no
-  #     longer forces a near-empty segment switch every 5min (~288 -> ~48
-  #     uploads/day at idle). Worst-case PITR lag on a quiet DB becomes 30min.
-  #   wal_compression: compress WAL records in-Postgres so more transactions
-  #     fit per 16MB segment -> fewer segments generated -> fewer uploads.
+  # Compress WAL records in-Postgres so fewer 16MB segments are generated,
+  # keeping WAL volume churn low.
   postgresql:
     parameters:
-      archive_timeout: "30min"
       wal_compression: "zstd"
 
   # The bootstrap below creates the database and owner role from the templated
@@ -97,35 +56,9 @@ spec:
 
   storage:
     size: 20Gi
-  # Dedicated volume for WAL keeps archiving/IO isolated from the data dir.
+  # Dedicated volume for WAL keeps WAL IO isolated from the data dir.
   walStorage:
     size: 4Gi
-
-  # Wire up the Barman Cloud Plugin for WAL archiving + backups.
-  plugins:
-    - name: barman-cloud.cloudnative-pg.io
-      isWALArchiver: true
-      parameters:
-        barmanObjectName: db-backup
----
-# Schedule a base backup every night at 03:00. WAL archiving runs continuously
-# between base backups (via the plugin), giving PITR to any point in the
-# retention window.
-apiVersion: postgresql.cnpg.io/v1
-kind: ScheduledBackup
-metadata:
-  name: db-daily
-  namespace: shopmon-prod
-spec:
-  # Seconds Minutes Hours DoM Month DoW (6-field Go cron used by CNPG)
-  schedule: "0 0 3 * * *"
-  immediate: true
-  backupOwnerReference: self
-  method: plugin
-  pluginConfiguration:
-    name: barman-cloud.cloudnative-pg.io
-  cluster:
-    name: db
 ---
 # Stable Service named "db" so the app's DATABASE_URL (@db:5432) keeps working
 # unchanged. Points at the current primary via CNPG's role label.
