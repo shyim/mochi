@@ -38,4 +38,8 @@ spec:
           env:
           - name: DD_OTLP_CONFIG_LOGS_ENABLED
             value: "true"
-
+          # Classify OTel spans by their semantic-convention kind. Queue
+          # consumer spans become service-entry spans; outbound HTTP client
+          # spans remain measured descendants instead of top-level spans.
+          - name: DD_APM_FEATURES
+            value: "enable_otlp_compute_top_level_by_span_kind"
