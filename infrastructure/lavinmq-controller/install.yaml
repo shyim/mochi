@@ -1,0 +1,983 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: lavinmq-operator
+    control-plane: controller-manager
+  name: lavinmq-operator-system
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: lavinmq-operator-system/lavinmq-operator-serving-cert
+    controller-gen.kubebuilder.io/version: v0.16.1
+  name: lavinmqs.cloudamqp.com
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: lavinmq-operator-webhook-service
+          namespace: lavinmq-operator-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: cloudamqp.com
+  names:
+    kind: LavinMQ
+    listKind: LavinMQList
+    plural: lavinmqs
+    singular: lavinmq
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: LavinMQ is the Schema for the lavinmqs API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: LavinMQSpec defines the desired state of LavinMQ
+            properties:
+              config:
+                properties:
+                  amqp:
+                    properties:
+                      channel_max:
+                        description: Maximum number of channels per connection.
+                        format: int64
+                        type: integer
+                      frame_max:
+                        description: Maximum size of an AMQP frame in bytes.
+                        format: int64
+                        type: integer
+                      heartbeat:
+                        description: Interval in seconds for AMQP heartbeats.
+                        format: int64
+                        type: integer
+                      max_message_size:
+                        description: Maximum size of a message in bytes.
+                        format: int64
+                        type: integer
+                      port:
+                        default: 5672
+                        description: Port for the AMQP interface. Set to -1 to disable.
+                        format: int32
+                        maximum: 65535
+                        minimum: -1
+                        type: integer
+                      tls_port:
+                        description: Port for the AMQPS interface.
+                        format: int32
+                        maximum: 65535
+                        minimum: 0
+                        type: integer
+                    type: object
+                  clustering:
+                    properties:
+                      max_unsynced_actions:
+                        description: Maximum number of unsynced actions allowed in
+                          the cluster.
+                        format: int64
+                        type: integer
+                    type: object
+                  main:
+                    properties:
+                      consumer_timeout:
+                        description: The timeout for consumers in milliseconds.
+                        format: int64
+                        type: integer
+                      default_consumer_prefetch:
+                        description: Default prefetch value for consumers if not set
+                          by the consumer.
+                        format: int64
+                        type: integer
+                      default_password:
+                        description: |-
+                          Hashed password for the default user.
+                          Use lavinmqctl hash_password or /api/auth/hash_password to generate the password hash.
+                        type: string
+                      default_user:
+                        description: The default user.
+                        type: string
+                      free_disk_min:
+                        description: The minimum value of free disk space in bytes
+                          before LavinMQ starts to control flow.
+                        format: int64
+                        type: integer
+                      free_disk_warn:
+                        description: The minimum value of free disk space in bytes
+                          before LavinMQ warns about low disk space.
+                        format: int64
+                        type: integer
+                      log_exchange:
+                        description: Enables the log exchange.
+                        type: boolean
+                      log_level:
+                        description: |-
+                          Controls how detailed the log should be.
+                          The level can be one of: none, fatal, error, warn, info, debug.
+                        type: string
+                      max_deleted_definitions:
+                        description: The number of deleted queues, unbinds, etc.,
+                          that compacts the definitions file.
+                        format: int64
+                        type: integer
+                      segment_size:
+                        description: The size of segment files in bytes.
+                        format: int64
+                        type: integer
+                      set_timestamp:
+                        description: Enables setting the timestamp property in msg
+                          headers.
+                        type: boolean
+                      socket_buffer_size:
+                        description: The socket buffer size in bytes.
+                        format: int64
+                        type: integer
+                      stats_interval:
+                        description: Statistics collection interval in milliseconds.
+                        format: int64
+                        type: integer
+                      stats_log_size:
+                        description: Number of entries in the statistics log file
+                          before the oldest entry is removed.
+                        format: int64
+                        type: integer
+                      tcp_keepalive:
+                        description: TCP keepalive settings as a tuple {idle, interval,
+                          probes/count}.
+                        type: string
+                      tcp_nodelay:
+                        description: Setting for disabling Nagle's algorithm and sending
+                          the data as soon as it's available.
+                        type: boolean
+                      tls_ciphers:
+                        description: Specifies the TLS ciphers to use.
+                        type: string
+                      tls_min_version:
+                        description: Specifies the minimum TLS version to use.
+                        type: string
+                    type: object
+                  mgmt:
+                    properties:
+                      port:
+                        default: 15672
+                        description: Port for the HTTP management interface. Set to
+                          -1 to disable.
+                        format: int32
+                        maximum: 65535
+                        minimum: -1
+                        type: integer
+                      tls_port:
+                        description: Port for the HTTPS management interface.
+                        format: int32
+                        maximum: 65535
+                        minimum: 0
+                        type: integer
+                    type: object
+                  mqtt:
+                    properties:
+                      max_inflight_messages:
+                        description: Maximum number of in-flight messages per client.
+                        format: int64
+                        type: integer
+                      port:
+                        default: 1883
+                        description: Port for the MQTT interface. Set to -1 to disable.
+                        format: int32
+                        maximum: 65535
+                        minimum: -1
+                        type: integer
+                      tls_port:
+                        description: Port for the MQTTS interface.
+                        format: int32
+                        maximum: 65535
+                        minimum: 0
+                        type: integer
+                    type: object
+                type: object
+              dataVolumeClaim:
+                description: Will override the accessmode and force it to ReadWriteOnce
+                properties:
+                  accessModes:
+                    description: |-
+                      accessModes contains the desired access modes the volume should have.
+                      More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#access-modes-1
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  dataSource:
+                    description: |-
+                      dataSource field can be used to specify either:
+                      * An existing VolumeSnapshot object (snapshot.storage.k8s.io/VolumeSnapshot)
+                      * An existing PVC (PersistentVolumeClaim)
+                      If the provisioner or an external controller can support the specified data source,
+                      it will create a new volume based on the contents of the specified data source.
+                      When the AnyVolumeDataSource feature gate is enabled, dataSource contents will be copied to dataSourceRef,
+                      and dataSourceRef contents will be copied to dataSource when dataSourceRef.namespace is not specified.
+                      If the namespace is specified, then dataSourceRef will not be copied to dataSource.
+                    properties:
+                      apiGroup:
+                        description: |-
+                          APIGroup is the group for the resource being referenced.
+                          If APIGroup is not specified, the specified Kind must be in the core API group.
+                          For any other third-party types, APIGroup is required.
+                        type: string
+                      kind:
+                        description: Kind is the type of resource being referenced
+                        type: string
+                      name:
+                        description: Name is the name of resource being referenced
+                        type: string
+                    required:
+                    - kind
+                    - name
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  dataSourceRef:
+                    description: |-
+                      dataSourceRef specifies the object from which to populate the volume with data, if a non-empty
+                      volume is desired. This may be any object from a non-empty API group (non
+                      core object) or a PersistentVolumeClaim object.
+                      When this field is specified, volume binding will only succeed if the type of
+                      the specified object matches some installed volume populator or dynamic
+                      provisioner.
+                      This field will replace the functionality of the dataSource field and as such
+                      if both fields are non-empty, they must have the same value. For backwards
+                      compatibility, when namespace isn't specified in dataSourceRef,
+                      both fields (dataSource and dataSourceRef) will be set to the same
+                      value automatically if one of them is empty and the other is non-empty.
+                      When namespace is specified in dataSourceRef,
+                      dataSource isn't set to the same value and must be empty.
+                      There are three important differences between dataSource and dataSourceRef:
+                      * While dataSource only allows two specific types of objects, dataSourceRef
+                        allows any non-core object, as well as PersistentVolumeClaim objects.
+                      * While dataSource ignores disallowed values (dropping them), dataSourceRef
+                        preserves all values, and generates an error if a disallowed value is
+                        specified.
+                      * While dataSource only allows local objects, dataSourceRef allows objects
+                        in any namespaces.
+                      (Beta) Using this field requires the AnyVolumeDataSource feature gate to be enabled.
+                      (Alpha) Using the namespace field of dataSourceRef requires the CrossNamespaceVolumeDataSource feature gate to be enabled.
+                    properties:
+                      apiGroup:
+                        description: |-
+                          APIGroup is the group for the resource being referenced.
+                          If APIGroup is not specified, the specified Kind must be in the core API group.
+                          For any other third-party types, APIGroup is required.
+                        type: string
+                      kind:
+                        description: Kind is the type of resource being referenced
+                        type: string
+                      name:
+                        description: Name is the name of resource being referenced
+                        type: string
+                      namespace:
+                        description: |-
+                          Namespace is the namespace of resource being referenced
+                          Note that when a namespace is specified, a gateway.networking.k8s.io/ReferenceGrant object is required in the referent namespace to allow that namespace's owner to accept the reference. See the ReferenceGrant documentation for details.
+                          (Alpha) This field requires the CrossNamespaceVolumeDataSource feature gate to be enabled.
+                        type: string
+                    required:
+                    - kind
+                    - name
+                    type: object
+                  resources:
+                    description: |-
+                      resources represents the minimum resources the volume should have.
+                      If RecoverVolumeExpansionFailure feature is enabled users are allowed to specify resource requirements
+                      that are lower than previous value but must still be higher than capacity recorded in the
+                      status field of the claim.
+                      More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources
+                    properties:
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                  selector:
+                    description: selector is a label query over volumes to consider
+                      for binding.
+                    properties:
+                      matchExpressions:
+                        description: matchExpressions is a list of label selector
+                          requirements. The requirements are ANDed.
+                        items:
+                          description: |-
+                            A label selector requirement is a selector that contains values, a key, and an operator that
+                            relates the key and values.
+                          properties:
+                            key:
+                              description: key is the label key that the selector
+                                applies to.
+                              type: string
+                            operator:
+                              description: |-
+                                operator represents a key's relationship to a set of values.
+                                Valid operators are In, NotIn, Exists and DoesNotExist.
+                              type: string
+                            values:
+                              description: |-
+                                values is an array of string values. If the operator is In or NotIn,
+                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                the values array must be empty. This array is replaced during a strategic
+                                merge patch.
+                              items:
+                                type: string
+                              type: array
+                              x-kubernetes-list-type: atomic
+                          required:
+                          - key
+                          - operator
+                          type: object
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                          map is equivalent to an element of matchExpressions, whose key field is "key", the
+                          operator is "In", and the values array contains only "value". The requirements are ANDed.
+                        type: object
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  storageClassName:
+                    description: |-
+                      storageClassName is the name of the StorageClass required by the claim.
+                      More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#class-1
+                    type: string
+                  volumeAttributesClassName:
+                    description: |-
+                      volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.
+                      If specified, the CSI driver will create or update the volume with the attributes defined
+                      in the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,
+                      it can be changed after the claim is created. An empty string value means that no VolumeAttributesClass
+                      will be applied to the claim but it's not allowed to reset this field to empty string once it is set.
+                      If unspecified and the PersistentVolumeClaim is unbound, the default VolumeAttributesClass
+                      will be set by the persistentvolume controller if it exists.
+                      If the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be
+                      set to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource
+                      exists.
+                      More info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/
+                      (Beta) Using this field requires the VolumeAttributesClass feature gate to be enabled (off by default).
+                    type: string
+                  volumeMode:
+                    description: |-
+                      volumeMode defines what type of volume is required by the claim.
+                      Value of Filesystem is implied when not included in claim spec.
+                    type: string
+                  volumeName:
+                    description: volumeName is the binding reference to the PersistentVolume
+                      backing this claim.
+                    type: string
+                type: object
+              etcdEndpoints:
+                items:
+                  type: string
+                type: array
+              image:
+                default: cloudamqp/lavinmq:2.4.1
+                type: string
+              nodeSelector:
+                additionalProperties:
+                  type: string
+                description: Selector used to select the nodes on which the pods will
+                  be scheduled.
+                type: object
+              replicas:
+                default: 1
+                format: int32
+                maximum: 3
+                minimum: 1
+                type: integer
+              resources:
+                description: ResourceRequirements describes the compute resource requirements.
+                properties:
+                  claims:
+                    description: |-
+                      Claims lists the names of resources, defined in spec.resourceClaims,
+                      that are used by this container.
+
+                      This is an alpha field and requires enabling the
+                      DynamicResourceAllocation feature gate.
+
+                      This field is immutable. It can only be set for containers.
+                    items:
+                      description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                      properties:
+                        name:
+                          description: |-
+                            Name must match the name of one entry in pod.spec.resourceClaims of
+                            the Pod where this field is used. It makes that resource available
+                            inside a container.
+                          type: string
+                        request:
+                          description: |-
+                            Request is the name chosen for a request in the referenced claim.
+                            If empty, everything from the claim is made available, otherwise
+                            only the result of this request.
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
+                  limits:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      Limits describes the maximum amount of compute resources allowed.
+                      More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                    type: object
+                  requests:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      Requests describes the minimum amount of compute resources required.
+                      If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                      otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                      More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                    type: object
+                type: object
+              tlsSecret:
+                description: |-
+                  SecretReference represents a Secret Reference. It has enough information to retrieve secret
+                  in any namespace
+                properties:
+                  name:
+                    description: name is unique within a namespace to reference a
+                      secret resource.
+                    type: string
+                  namespace:
+                    description: namespace defines the space within which the secret
+                      name must be unique.
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+            required:
+            - dataVolumeClaim
+            type: object
+          status:
+            description: LavinMQStatus defines the observed state of LavinMQ
+            properties:
+              conditions:
+                description: Conditions store the status conditions of the LavinMQ
+                  instances
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: lavinmq-operator
+  name: lavinmq-operator-controller-manager
+  namespace: lavinmq-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: lavinmq-operator
+  name: lavinmq-operator-leader-election-role
+  namespace: lavinmq-operator-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: lavinmq-operator
+  name: lavinmq-operator-lavinmq-editor-role
+rules:
+- apiGroups:
+  - cloudamqp.com
+  resources:
+  - lavinmqs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cloudamqp.com
+  resources:
+  - lavinmqs/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: lavinmq-operator
+  name: lavinmq-operator-lavinmq-viewer-role
+rules:
+- apiGroups:
+  - cloudamqp.com
+  resources:
+  - lavinmqs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cloudamqp.com
+  resources:
+  - lavinmqs/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: lavinmq-operator-manager-role
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cloudamqp.com
+  resources:
+  - lavinmqs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cloudamqp.com
+  resources:
+  - lavinmqs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - cloudamqp.com
+  resources:
+  - lavinmqs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - persistentvolumeclaims
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: lavinmq-operator-metrics-auth-role
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: lavinmq-operator-metrics-reader
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: lavinmq-operator
+  name: lavinmq-operator-leader-election-rolebinding
+  namespace: lavinmq-operator-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: lavinmq-operator-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: lavinmq-operator-controller-manager
+  namespace: lavinmq-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: lavinmq-operator
+  name: lavinmq-operator-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: lavinmq-operator-manager-role
+subjects:
+- kind: ServiceAccount
+  name: lavinmq-operator-controller-manager
+  namespace: lavinmq-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: lavinmq-operator-metrics-auth-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: lavinmq-operator-metrics-auth-role
+subjects:
+- kind: ServiceAccount
+  name: lavinmq-operator-controller-manager
+  namespace: lavinmq-operator-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: lavinmq-operator
+    control-plane: controller-manager
+  name: lavinmq-operator-controller-manager-metrics-service
+  namespace: lavinmq-operator-system
+spec:
+  ports:
+  - name: https
+    port: 8443
+    protocol: TCP
+    targetPort: 8443
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: lavinmq-operator
+  name: lavinmq-operator-webhook-service
+  namespace: lavinmq-operator-system
+spec:
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 9443
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: lavinmq-operator
+    control-plane: controller-manager
+  name: lavinmq-operator-controller-manager
+  namespace: lavinmq-operator-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        control-plane: controller-manager
+    spec:
+      containers:
+      - args:
+        - --metrics-bind-address=:8443
+        - --leader-elect
+        - --health-probe-bind-address=:8081
+        command:
+        - /manager
+        image: ghcr.io/cloudamqp/lavinmq-operator:0.2.0
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      securityContext:
+        runAsNonRoot: true
+      serviceAccountName: lavinmq-operator-controller-manager
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: webhook-server-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/component: certificate
+    app.kubernetes.io/created-by: lavinmq-operator
+    app.kubernetes.io/instance: serving-cert
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: certificate
+    app.kubernetes.io/part-of: lavinmq-operator
+  name: lavinmq-operator-serving-cert
+  namespace: lavinmq-operator-system
+spec:
+  dnsNames:
+  - lavinmq-operator-webhook-service.lavinmq-operator-system.svc
+  - lavinmq-operator-webhook-service.lavinmq-operator-system.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: lavinmq-operator-selfsigned-issuer
+  secretName: webhook-server-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: lavinmq-operator
+  name: lavinmq-operator-selfsigned-issuer
+  namespace: lavinmq-operator-system
+spec:
+  selfSigned: {}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: lavinmq-operator-system/lavinmq-operator-serving-cert
+  labels:
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/created-by: lavinmq-operator
+    app.kubernetes.io/instance: validating-webhook-configuration
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: validatingwebhookconfiguration
+    app.kubernetes.io/part-of: lavinmq-operator
+  name: lavinmq-operator-validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: lavinmq-operator-webhook-service
+      namespace: lavinmq-operator-system
+      path: /validate-cloudamqp-com-v1alpha1-lavinmq
+  failurePolicy: Fail
+  name: vlavinmq.kb.io
+  rules:
+  - apiGroups:
+    - cloudamqp.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - lavinmqs
+  sideEffects: None

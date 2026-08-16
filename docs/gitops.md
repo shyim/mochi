@@ -33,11 +33,13 @@ creates ordered Flux `Kustomization` objects:
    release `plugin-barman-cloud` in `cnpg-system`.
 7. `external-secrets-controller` adopts/upgrades the External Secrets Operator
    Helm release `external-secrets` in `external-secrets`.
-8. `global-config` applies cluster-wide Gateway API and cert-manager resources
+8. `lavinmq-controller` installs/manages the LavinMQ Operator manifests in
+   `lavinmq-operator-system`.
+9. `global-config` applies cluster-wide Gateway API and cert-manager resources
    from `global/`.
-9. `app-sitespeed` applies the Sitespeed API app from `sitespeed/`.
-10. `app-swdemo` applies the Shopware demo app from `swdemo/`.
-11. `app-shopmon-staging` applies the Shopmon staging app, Redis, CNPG database
+10. `app-sitespeed` applies the Sitespeed API app from `sitespeed/`.
+11. `app-swdemo` applies the Shopware demo app from `swdemo/`.
+12. `app-shopmon-staging` applies the Shopmon staging app, Redis, CNPG database
     custom resources, backups, secrets, and routes from `shopmon-staging/`.
 
 All current cluster controllers, global config, and apps are now reconciled by
@@ -69,6 +71,7 @@ kustomize build infrastructure/cnpg-controller
 kustomize build infrastructure/cert-manager-controller
 kustomize build infrastructure/barman-controller
 kustomize build infrastructure/external-secrets-controller
+kustomize build infrastructure/lavinmq-controller
 kustomize build global
 kustomize build sitespeed
 kustomize build swdemo
@@ -103,6 +106,7 @@ flux reconcile kustomization cnpg-controller --with-source
 flux reconcile kustomization cert-manager-controller --with-source
 flux reconcile kustomization barman-controller --with-source
 flux reconcile kustomization external-secrets-controller --with-source
+flux reconcile kustomization lavinmq-controller --with-source
 flux reconcile kustomization global-config --with-source
 flux reconcile kustomization app-sitespeed --with-source
 flux reconcile kustomization app-swdemo --with-source
