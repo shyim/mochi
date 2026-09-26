@@ -27,7 +27,6 @@ nodes serve ingress (see "Ingress topology" below).
 - `cert-issuer-dns.yaml` — `letsencrypt-dns` ClusterIssuer (DNS-01, Cloudflare)
 - `wildcard-certificates.yaml` — `*.fos.gg` + `*.staging.fos.gg` certs (in `default`)
 - `cert-manager-values.yaml` — helm values that enable Gateway API support
-- `mochi-certificate.yaml` — standalone cert for `mochi.shyim.de`
 - `../infrastructure/datadog-config/datadogagent.yaml` — DatadogAgent custom
   resource for logs/OTLP/cluster checks
 
@@ -66,7 +65,7 @@ a k3s restart / node reboot. They cannot be expressed as Kubernetes objects:
 ```yaml
 # /etc/rancher/k3s/config.yaml
 tls-san:
-  - "mochi.shyim.de"
+  - "mochi.shyim.de" # Kubernetes API TLS SAN; separate from ingress hostnames
 node-ip: "162.55.47.201,2a01:4f8:c17:e302::1"
 cluster-cidr: "10.42.0.0/16,fd42::/48"
 service-cidr: "10.43.0.0/16,fd43::/112"
@@ -98,7 +97,6 @@ kubectl apply -f global/cert-issuer-dns.yaml
 kubectl apply -f global/wildcard-certificates.yaml   # wait until Ready
 
 kubectl apply -f global/gateway.yaml
-kubectl apply -f global/mochi-certificate.yaml
 
 # 4. Per-app routing
 kubectl apply -f shopmon-staging/
@@ -152,5 +150,5 @@ kubectl apply -f sitespeed/
 ### Ingress topology (2 nodes)
 - `mochi` (Hetzner, `162.55.47.201`, role=storage, control-plane) and `dango`
   (netcup, `159.195.30.237`, role=compute) both run an Envoy pod (DaemonSet) and
-  a `svclb-envoy-*` pod, so both public IPs serve `*.fos.gg`. `mochi.shyim.de`
-  still resolves to mochi only; its DaemonSet pod on mochi covers it.
+  a `svclb-envoy-*` pod, so both public IPs serve `*.fos.gg`, including
+  `mochi.fos.gg`.

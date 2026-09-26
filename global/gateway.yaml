@@ -7,7 +7,7 @@
 # Listeners (one HTTP + one HTTPS per wildcard domain):
 #   - fos-gg-*          -> *.fos.gg          (cert: wildcard-fos-gg-tls)
 #   - staging-fos-gg-*  -> *.staging.fos.gg  (cert: wildcard-staging-fos-gg-tls)
-#   - mochi-*           -> mochi.shyim.de    (different apex domain; explicit)
+#   - mochi-*           -> mochi.fos.gg      (explicit host on the fos.gg wildcard)
 #
 # Both wildcard certs live in the `default` namespace (same as this Gateway),
 # so no ReferenceGrant is needed. allowedRoutes is `from: All` so any namespace
@@ -65,23 +65,23 @@ spec:
         namespaces:
           from: All
 
-    # --- mochi.shyim.de (different apex; keeps its own cert) ---
+    # --- mochi.fos.gg (uses the shared *.fos.gg certificate) ---
     - name: mochi-http
       protocol: HTTP
       port: 80
-      hostname: "mochi.shyim.de"
+      hostname: "mochi.fos.gg"
       allowedRoutes:
         namespaces:
           from: Same
     - name: mochi-https
       protocol: HTTPS
       port: 443
-      hostname: "mochi.shyim.de"
+      hostname: "mochi.fos.gg"
       tls:
         mode: Terminate
         certificateRefs:
           - kind: Secret
-            name: mochi-shyim-de-tls
+            name: wildcard-fos-gg-tls
       allowedRoutes:
         namespaces:
           from: Same

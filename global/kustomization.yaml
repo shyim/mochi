@@ -6,5 +6,3 @@ resources:
   - cert-issuer-dns.yaml
   - wildcard-certificates.yaml
   - gateway.yaml
-  - mochi-certificate.yaml
-

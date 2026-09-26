@@ -50,8 +50,7 @@ spec:
       # pod, so both node public IPs serve ingress. Combined with
       # externalTrafficPolicy: Local (below) this preserves the client source IP
       # on every node — there is no node without a local Envoy to drop traffic.
-      # No nodeSelector: we want Envoy on all nodes, including mochi.shyim.de
-      # which only resolves to mochi (still covered by the per-node pod there).
+      # No nodeSelector: we want Envoy on all nodes, including mochi.
       envoyDaemonSet:
         pod: {}
       envoyService:
