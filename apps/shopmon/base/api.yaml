@@ -23,9 +23,6 @@ spec:
                 name: shopmon-config
             - secretRef:
                 name: shopmon
-          env:
-            - name: DATABASE_URL
-              value: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@db:5432/$(POSTGRES_DB)?sslmode=disable"
       containers:
         - name: api
           image: ghcr.io/friendsofshopware/shopmon
@@ -37,8 +34,6 @@ spec:
             - secretRef:
                 name: shopmon
           env:
-            - name: DATABASE_URL
-              value: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@db:5432/$(POSTGRES_DB)?sslmode=disable"
             - name: HOST_IP
               valueFrom:
                 fieldRef:
@@ -73,8 +68,6 @@ spec:
             - secretRef:
                 name: shopmon
           env:
-            - name: DATABASE_URL
-              value: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@db:5432/$(POSTGRES_DB)?sslmode=disable"
             - name: HOST_IP
               valueFrom:
                 fieldRef:
