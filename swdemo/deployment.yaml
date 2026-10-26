@@ -17,13 +17,13 @@ spec:
     spec:
       containers:
         - name: shopware
-          image: ghcr.io/friendsofshopware/shopware-demo-environment:6.7.15 # {"$imagepolicy": "flux-system:swdemo-shopware"}
+          image: ghcr.io/friendsofshopware/shopware-demo-environment:6.7 # {"$imagepolicy": "flux-system:swdemo-shopware"}
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
           env:
             - name: EXTENSIONS
-              value: "frosh/tools:* frosh/shopmon:*"
+              value: "frosh/tools:*"
             - name: TRUSTED_PROXIES
               # Behind Envoy Gateway; trust the proxy so Shopware sees the
               # forwarded client IP / scheme. REMOTE_ADDR mirrors the compose setup.
