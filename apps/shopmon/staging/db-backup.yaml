@@ -67,7 +67,8 @@ spec:
                   aws s3 ls "$prefix/" | while read -r day time size key; do
                     [ -n "$key" ] || continue
                     if [ "$(date -d "$day $time" +%s)" -lt "$cutoff" ]; then
-                      aws s3 rm "$prefix/$key"
+                      # Garage rejects CRT-signed deletes from `aws s3 rm`.
+                      aws s3api delete-object --bucket "$AWS_S3_BUCKET_NAME" --key "shopmon-staging/$key"
                     fi
                   done
               env:
