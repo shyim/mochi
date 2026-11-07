@@ -12,4 +12,4 @@ resources:
   - httproute-redirect.yaml
 images:
   - name: ghcr.io/friendsofshopware/shopmon
-    newTag: main-1793850351-875b684 # {"$imagepolicy": "flux-system:shopmon-staging:tag"}
+    newTag: main-1794045133-5392f4b # {"$imagepolicy": "flux-system:shopmon-staging:tag"}
